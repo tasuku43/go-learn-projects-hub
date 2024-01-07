@@ -1,6 +1,9 @@
 package middleware
 
-import "net/http"
+import (
+	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/middleware/internal/firewall"
+	"net/http"
+)
 
 type Middleware func(http.Handler) http.Handler
 
@@ -17,9 +20,5 @@ func Chain(h http.Handler, middlewares ...Middleware) http.Handler {
 }
 
 var Middlewares = []Middleware{
-	// Noop
-	// TODO: ここにミドルウェアを追加していく
-	func(h http.Handler) http.Handler {
-		return h
-	},
+	firewall.Middleware,
 }
