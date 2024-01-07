@@ -1,0 +1,34 @@
+version: '3.2'
+
+services:
+  app:
+    container_name: app
+    build: .
+    ports:
+      - "9000:9000"
+    depends_on:
+      - mysql
+    environment:
+      - APP_PORT=9000
+      - DB_USER=root
+      - DB_PASS=root
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=go_todo_list
+    profiles:
+      - use-image
+
+  mysql:
+    container_name: mysql
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: go_todo_list
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_GENERAL_LOG: 0
+    volumes:
+      - data-mysql:/data/mysql
+
+volumes:
+  data-mysql:
