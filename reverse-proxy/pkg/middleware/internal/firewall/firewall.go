@@ -1,24 +1,26 @@
 package firewall
 
 import (
-	"fmt"
 	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/middleware/internal/firewall/rules"
+	"log/slog"
 	"net/http"
 )
 
-func Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for _, rule := range newRules() {
-			_, err := rule.Apply(r)
-			if err != nil {
-				message := err.Error()
-				fmt.Println("Access denied: " + message)
-				http.Error(w, "Access denied.", http.StatusForbidden)
-				return
+func NewMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, rule := range newRules() {
+				_, err := rule.Apply(r)
+				if err != nil {
+					message := err.Error()
+					logger.Info("Access denied: " + message)
+					http.Error(w, "Access denied.", http.StatusForbidden)
+					return
+				}
 			}
-		}
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 type Rule interface {

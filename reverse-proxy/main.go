@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/middleware"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,14 +11,16 @@ import (
 )
 
 func main() {
+	var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	if err := godotenv.Load(); err != nil {
-		fmt.Println("Error loading .env file:", err)
+		logger.Warn("Error loading .env file:", err)
 		return
 	}
 
 	backendUrl, err := url.Parse(os.Getenv("BACKEND_URL"))
 	if err != nil {
-		fmt.Printf("Error parsing BACKEND_URL: %v\n", err)
+		logger.Warn("Error parsing BACKEND_URL: %v\n", err)
 		return
 	}
 
@@ -28,12 +30,12 @@ func main() {
 		proxy.ServeHTTP(w, r)
 	})
 
-	chainedHandler := middleware.Chain(handler, middleware.Middlewares...)
+	chainedHandler := middleware.Chain(handler, middleware.NewMiddlewares(logger)...)
 
 	http.Handle("/", chainedHandler)
 
 	port := os.Getenv("PROXY_PORT")
-	fmt.Println("Starting server on port", port)
+	logger.Info("Starting server on port: " + port)
 	if err = http.ListenAndServe(":"+port, nil); err != nil {
 		return
 	}
