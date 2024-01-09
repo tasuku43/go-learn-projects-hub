@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/joho/godotenv"
+	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/load_balancer"
 	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/middleware"
 	"log/slog"
 	"net/http"
@@ -9,13 +10,11 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync/atomic"
 	"time"
 )
 
 var (
-	nextBackend int32
-	backendUrls = getBackendUrls()
+	loadBalancer = load_balancer.NewLoadBalancer(getBackendUrls())
 )
 
 func main() {
@@ -26,24 +25,7 @@ func main() {
 		return
 	}
 
-	customClient := &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        10,               // 各ホストへの最大アイドルコネクション数
-			IdleConnTimeout:     90 * time.Second, // アイドルコネクションのタイムアウト期間
-			DisableCompression:  true,             // 圧縮を無効化
-			MaxIdleConnsPerHost: 10,               // ホストごとの最大アイドルコネクション数
-		},
-	}
-
-	proxy := &httputil.ReverseProxy{
-		Director: func(r *http.Request) {
-			backendUrl := getNextBackend()
-			logger.Info("Proxying request to: " + backendUrl.String())
-			r.URL.Scheme = backendUrl.Scheme
-			r.URL.Host = backendUrl.Host
-		},
-		Transport: customClient.Transport,
-	}
+	proxy := createProxy(logger, loadBalancer)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		proxy.ServeHTTP(w, r)
@@ -60,9 +42,25 @@ func main() {
 	}
 }
 
-func getNextBackend() *url.URL {
-	n := atomic.AddInt32(&nextBackend, 1)
-	return backendUrls[int(n)%len(backendUrls)]
+func createProxy(logger *slog.Logger, l load_balancer.LoadBalancer) *httputil.ReverseProxy {
+	customClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			IdleConnTimeout:     90 * time.Second,
+			DisableCompression:  true,
+			MaxIdleConnsPerHost: 10,
+		},
+	}
+	proxy := &httputil.ReverseProxy{
+		Director: func(r *http.Request) {
+			backendUrl := l.Next()
+			logger.Info("Proxying request to: " + backendUrl.String())
+			r.URL.Scheme = backendUrl.Scheme
+			r.URL.Host = backendUrl.Host
+		},
+		Transport: customClient.Transport,
+	}
+	return proxy
 }
 
 func getBackendUrls() []*url.URL {
