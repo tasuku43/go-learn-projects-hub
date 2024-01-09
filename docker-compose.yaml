@@ -7,16 +7,48 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - app
+      - app0
+      - app1
+      - app2
     environment:
-      - BACKEND_URL=http://app:9000
+      - BACKEND_URLS=http://app0:9000,http://app1:9000,http://app2:9000
       - PROXY_PORT=8080
 
-  app:
-    container_name: app
+  app0:
+    container_name: app0
     build: ./todo-list-app
     ports:
       - "9000:9000"
+    depends_on:
+      - mysql
+    environment:
+      - APP_PORT=9000
+      - DB_USER=root
+      - DB_PASS=root
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=go_todo_list
+
+  app1:
+    container_name: app1
+    build: ./todo-list-app
+    ports:
+      - "9001:9000"
+    depends_on:
+        - mysql
+    environment:
+        - APP_PORT=9000
+        - DB_USER=root
+        - DB_PASS=root
+        - DB_HOST=mysql
+        - DB_PORT=3306
+        - DB_NAME=go_todo_list
+
+  app2:
+    container_name: app2
+    build: ./todo-list-app
+    ports:
+      - "9002:9000"
     depends_on:
       - mysql
     environment:

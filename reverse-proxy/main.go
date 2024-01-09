@@ -8,7 +8,14 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
+	"sync/atomic"
 	"time"
+)
+
+var (
+	nextBackend int32
+	backendUrls = getBackendUrls()
 )
 
 func main() {
@@ -16,12 +23,6 @@ func main() {
 
 	if err := godotenv.Load(); err != nil {
 		logger.Warn("Error loading .env file:", err)
-		return
-	}
-
-	backendUrl, err := url.Parse(os.Getenv("BACKEND_URL"))
-	if err != nil {
-		logger.Warn("Error parsing BACKEND_URL: %v\n", err)
 		return
 	}
 
@@ -36,6 +37,8 @@ func main() {
 
 	proxy := &httputil.ReverseProxy{
 		Director: func(r *http.Request) {
+			backendUrl := getNextBackend()
+			logger.Info("Proxying request to: " + backendUrl.String())
 			r.URL.Scheme = backendUrl.Scheme
 			r.URL.Host = backendUrl.Host
 		},
@@ -52,7 +55,30 @@ func main() {
 
 	port := os.Getenv("PROXY_PORT")
 	logger.Info("Starting server on port: " + port)
-	if err = http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		return
 	}
+}
+
+func getNextBackend() *url.URL {
+	n := atomic.AddInt32(&nextBackend, 1)
+	return backendUrls[int(n)%len(backendUrls)]
+}
+
+func getBackendUrls() []*url.URL {
+	backendUrlsStr := os.Getenv("BACKEND_URLS")
+	if backendUrlsStr == "" {
+		panic("BACKEND_URLS is not set")
+	}
+	urlStrings := strings.Split(backendUrlsStr, ",")
+
+	var backendUrls []*url.URL
+	for _, urlString := range urlStrings {
+		backendUrl, err := url.Parse(urlString)
+		if err != nil {
+			panic(err)
+		}
+		backendUrls = append(backendUrls, backendUrl)
+	}
+	return backendUrls
 }
