@@ -20,7 +20,8 @@ services:
     ports:
       - "9000:9000"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       - APP_PORT=9000
       - DB_USER=root
@@ -35,7 +36,8 @@ services:
     ports:
       - "9001:9000"
     depends_on:
-        - mysql
+      mysql:
+        condition: service_healthy
     environment:
         - APP_PORT=9000
         - DB_USER=root
@@ -50,7 +52,8 @@ services:
     ports:
       - "9002:9000"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       - APP_PORT=9000
       - DB_USER=root
@@ -70,6 +73,11 @@ services:
       MYSQL_GENERAL_LOG: 0
     volumes:
       - data-mysql:/data/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   data-mysql:
