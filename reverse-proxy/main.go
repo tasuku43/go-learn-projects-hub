@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/joho/godotenv"
-	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/load_balancer/round_robin"
+	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/load_balancer/least_connections"
 	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/middleware"
 	"log/slog"
 	"net/http"
@@ -20,7 +20,8 @@ func main() {
 	}
 
 	chainedHandler := middleware.Chain(
-		round_robin.NewLoadBalancerHandler(logger, getBackendUrls()),
+		//round_robin.NewLoadBalancerHandler(logger, getBackendUrls()),
+		least_connections.NewLoadBalancerHandler(logger, getBackendUrls()),
 		middleware.NewMiddlewares(logger)...,
 	)
 
