@@ -13,6 +13,7 @@ services:
     environment:
       - BACKEND_URLS=http://app0:9000,http://app1:9000,http://app2:9000
       - PROXY_PORT=8080
+      - LOAD_BALANCER_TYPE=round_robin
 
   app0:
     container_name: app0
