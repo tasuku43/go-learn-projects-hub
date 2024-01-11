@@ -27,6 +27,6 @@ func NewMiddlewares(logger *slog.Logger) []Middleware {
 	return []Middleware{
 		logging.NewMiddleware(logger),
 		firewall.NewMiddleware(logger),
-		rate_limit.NewRateLimiter(rate.NewLimiter(1, 1), logger).Middleware,
+		rate_limit.NewRateLimiter(rate.NewLimiter(1, 100), logger).Middleware,
 	}
 }

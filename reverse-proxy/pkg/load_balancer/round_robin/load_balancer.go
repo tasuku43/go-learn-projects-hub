@@ -24,12 +24,21 @@ func (r *LoadBalancer) next() *url.URL {
 	return r.Backends[int(n)%len(r.Backends)]
 }
 
-func Handler(logger *slog.Logger, backends []*url.URL) http.Handler {
-	l := newLoadBalancer(backends)
+type LoadBalancerHandler struct {
+	logger *slog.Logger
+	lb     *LoadBalancer
+}
 
-	proxy := internal.CreateProxy(logger, l.next())
+func NewLoadBalancerHandler(logger *slog.Logger, backends []*url.URL) *LoadBalancerHandler {
+	logger.Info("Initializing Round Robin Load Balancer Handler")
+	lb := newLoadBalancer(backends)
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		proxy.ServeHTTP(w, r)
-	})
+	return &LoadBalancerHandler{
+		logger,
+		lb,
+	}
+}
+
+func (h *LoadBalancerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	internal.CreateProxy(h.logger, h.lb.next()).ServeHTTP(rw, req)
 }

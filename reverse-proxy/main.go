@@ -20,7 +20,7 @@ func main() {
 	}
 
 	chainedHandler := middleware.Chain(
-		round_robin.Handler(logger, getBackendUrls()),
+		round_robin.NewLoadBalancerHandler(logger, getBackendUrls()),
 		middleware.NewMiddlewares(logger)...,
 	)
 
