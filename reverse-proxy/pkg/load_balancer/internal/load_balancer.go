@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+type ProxyCreator func(*slog.Logger, *url.URL) *httputil.ReverseProxy
+
 func CreateProxy(logger *slog.Logger, url *url.URL) *httputil.ReverseProxy {
 	proxy := &httputil.ReverseProxy{
 		Director: func(r *http.Request) {

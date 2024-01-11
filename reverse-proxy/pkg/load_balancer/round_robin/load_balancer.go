@@ -25,8 +25,9 @@ func (r *LoadBalancer) next() *url.URL {
 }
 
 type LoadBalancerHandler struct {
-	logger *slog.Logger
-	lb     *LoadBalancer
+	logger      *slog.Logger
+	lb          *LoadBalancer
+	createProxy internal.ProxyCreator
 }
 
 func NewLoadBalancerHandler(logger *slog.Logger, backends []*url.URL) *LoadBalancerHandler {
@@ -36,9 +37,10 @@ func NewLoadBalancerHandler(logger *slog.Logger, backends []*url.URL) *LoadBalan
 	return &LoadBalancerHandler{
 		logger,
 		lb,
+		internal.CreateProxy,
 	}
 }
 
 func (h *LoadBalancerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	internal.CreateProxy(h.logger, h.lb.next()).ServeHTTP(rw, req)
+	h.createProxy(h.logger, h.lb.next()).ServeHTTP(rw, req)
 }
