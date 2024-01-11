@@ -31,13 +31,13 @@ type Server struct {
 	mu          sync.Mutex
 }
 
-func (s *Server) incrementConnectionCount() {
+func (s *Server) increment() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Connections++
 }
 
-func (s *Server) decrementConnectionCount() {
+func (s *Server) decrement() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Connections--
@@ -77,8 +77,8 @@ func NewLoadBalancerHandler(logger *slog.Logger, backends []*url.URL) *LoadBalan
 func (h *LoadBalancerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	server := h.lb.nextServer()
 
-	server.incrementConnectionCount()
-	defer server.decrementConnectionCount()
+	server.increment()
+	defer server.decrement()
 
 	internal.CreateProxy(h.logger, server.url).ServeHTTP(w, r)
 }
