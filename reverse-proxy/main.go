@@ -2,41 +2,14 @@ package main
 
 import (
 	"github.com/joho/godotenv"
-	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/load_balancer"
+	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/load_balancer/round_robin"
 	"github.com/tasuku43/go-learn-projects-hub/waf/pkg/middleware"
 	"log/slog"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 )
-
-var (
-	loadBalancer = load_balancer.NewLoadBalancer(getBackendUrls())
-)
-
-func handler(logger *slog.Logger, l load_balancer.LoadBalancer) http.Handler {
-	proxy := &httputil.ReverseProxy{
-		Director: func(r *http.Request) {
-			backendUrl := l.Next()
-			logger.Info("Proxying request to: " + backendUrl.String())
-			r.URL.Scheme = backendUrl.Scheme
-			r.URL.Host = backendUrl.Host
-		},
-		Transport: &http.Transport{
-			MaxIdleConns:        10,
-			IdleConnTimeout:     90 * time.Second,
-			DisableCompression:  true,
-			MaxIdleConnsPerHost: 10,
-		},
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		proxy.ServeHTTP(w, r)
-	})
-}
 
 func main() {
 	var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -46,7 +19,10 @@ func main() {
 		return
 	}
 
-	chainedHandler := middleware.Chain(handler(logger, loadBalancer), middleware.NewMiddlewares(logger)...)
+	chainedHandler := middleware.Chain(
+		round_robin.Handler(logger, getBackendUrls()),
+		middleware.NewMiddlewares(logger)...,
+	)
 
 	http.Handle("/", chainedHandler)
 
